@@ -2,16 +2,19 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  reauthenticateWithPopup,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
   updateProfile,
   deleteUser,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs, writeBatch, orderBy, limit, Timestamp } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { saveToLocalStorage, loadFromLocalStorage, STORAGE_KEYS } from "../lib/localStorage";
-import { updateLastSync } from "../lib/syncManager";
+import { updateLastSync, syncFirestore } from "../lib/syncManager";
 
 export interface User {
   id: string;
@@ -53,6 +56,40 @@ function cacheUser(user: User): User {
   return user;
 }
 
+async function fetchAndCacheLoginData(userId: string): Promise<void> {
+  // Shop items
+  const shopSnap = await getDocs(query(collection(db, "shopItems"), where("userId", "==", userId)));
+  const shopItems = shopSnap.docs.map((d) => {
+    const data = d.data();
+    return {
+      ...data,
+      id: d.id,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt ?? 0),
+      synced: true,
+    };
+  });
+  saveToLocalStorage(STORAGE_KEYS.SHOP_ITEMS, shopItems);
+
+  // Purchase history (últimas 50 compras)
+  try {
+    const purchasesSnap = await getDocs(
+      query(collection(db, "purchases"), where("userId", "==", userId), orderBy("purchasedAt", "desc"), limit(50)),
+    );
+    const purchases = purchasesSnap.docs.map((d) => {
+      const data = d.data();
+      return {
+        ...data,
+        id: d.id,
+        purchasedAt: data.purchasedAt instanceof Timestamp ? data.purchasedAt.toDate() : new Date(data.purchasedAt ?? 0),
+        synced: true,
+      };
+    });
+    saveToLocalStorage(STORAGE_KEYS.PURCHASE_HISTORY, { purchases, lastSync: Date.now() });
+  } catch {
+    // Regras do Firestore podem bloquear a query de purchases — ignorar silenciosamente
+  }
+}
+
 function translateError(error: unknown): never {
   const code = (error as { code?: string }).code ?? "";
   throw new Error(ERROR_MESSAGES[code] ?? "Ocorreu um erro. Tente novamente.");
@@ -64,28 +101,29 @@ export async function signInWithGoogle(): Promise<User> {
   const fbUser = result.user;
   const snap = await getDoc(doc(db, "users", fbUser.uid));
 
+  let user: User;
   if (snap.exists()) {
-    const existing = snap.data() as User;
-    // Salvar parentPassword separadamente no localStorage
-    if (existing.parentPassword) {
-      saveToLocalStorage(STORAGE_KEYS.PARENT_PASSWORD, existing.parentPassword);
+    user = snap.data() as User;
+    if (user.parentPassword) {
+      saveToLocalStorage(STORAGE_KEYS.PARENT_PASSWORD, user.parentPassword);
     }
-    return cacheUser(existing);
+  } else {
+    user = {
+      id: fbUser.uid,
+      name: fbUser.displayName || "",
+      nickname: fbUser.displayName?.split(" ")[0] || "",
+      age: 0,
+      email: fbUser.email || "",
+      points: 0,
+      rating: 150,
+      level: 1,
+      onboarded: false,
+    };
+    await setDoc(doc(db, "users", user.id), user);
   }
-
-  const newUser: User = {
-    id: fbUser.uid,
-    name: fbUser.displayName || "",
-    nickname: fbUser.displayName?.split(" ")[0] || "",
-    age: 0,
-    email: fbUser.email || "",
-    points: 0,
-    rating: 150,
-    level: 1,
-    onboarded: false,
-  };
-  await setDoc(doc(db, "users", newUser.id), newUser);
-  return cacheUser(newUser);
+  cacheUser(user);
+  await fetchAndCacheLoginData(fbUser.uid);
+  return user;
 }
 
 /** @deprecated Mantido por compatibilidade — signInWithGoogle agora usa popup */
@@ -97,25 +135,27 @@ export async function signIn(email: string, password: string): Promise<User> {
   try {
     const credential = await signInWithEmailAndPassword(auth, email, password);
     const snap = await getDoc(doc(db, "users", credential.user.uid));
+    let user: User;
     if (snap.exists()) {
-      const userData = snap.data() as User;
-      // Salvar parentPassword separadamente no localStorage
-      if (userData.parentPassword) {
-        saveToLocalStorage(STORAGE_KEYS.PARENT_PASSWORD, userData.parentPassword);
+      user = snap.data() as User;
+      if (user.parentPassword) {
+        saveToLocalStorage(STORAGE_KEYS.PARENT_PASSWORD, user.parentPassword);
       }
-      return cacheUser(userData);
+    } else {
+      user = {
+        id: credential.user.uid,
+        name: credential.user.displayName || "",
+        nickname: credential.user.displayName || "",
+        age: 0,
+        email: credential.user.email || "",
+        points: 0,
+        rating: 150,
+        level: 1,
+      };
     }
-    const user: User = {
-      id: credential.user.uid,
-      name: credential.user.displayName || "",
-      nickname: credential.user.displayName || "",
-      age: 0,
-      email: credential.user.email || "",
-      points: 0,
-      rating: 150,
-      level: 1,
-    };
-    return cacheUser(user);
+    cacheUser(user);
+    await fetchAndCacheLoginData(credential.user.uid);
+    return user;
   } catch (error) {
     translateError(error);
   }
@@ -158,7 +198,16 @@ export async function forgotPassword(email: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  localStorage.removeItem("apprender:user");
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    try {
+      await syncFirestore(currentUser.uid);
+    } catch {
+      // ignorar erros de sync — prosseguir com logout de qualquer forma
+    }
+  }
+  Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem(STORAGE_KEY);
   await signOut(auth);
 }
 
@@ -187,42 +236,56 @@ export async function onboardUser(user: User): Promise<void> {
 
 /**
  * Exclui permanentemente a conta do usuário e todos os dados relacionados.
- * Remove: documento de usuário, itens da loja, compras, questões.
+ * Deve ser chamado APÓS reautenticação bem-sucedida.
+ * Remove: documento de usuário, itens da loja, sessão Auth e cache local.
+ * Compras não podem ser deletadas client-side (regra Firestore: delete: if false).
  */
 export async function deleteAccount(userId: string): Promise<void> {
   const batch = writeBatch(db);
-
-  // Delete user document
   batch.delete(doc(db, "users", userId));
 
-  // Delete shop items
-  const shopItemsQuery = query(
-    collection(db, "shopItems"),
-    where("__name__", ">=", `${userId}_`),
-    where("__name__", "<", `${userId}_\uf8ff`),
+  const shopItemsSnap = await getDocs(
+    query(collection(db, "shopItems"), where("userId", "==", userId)),
   );
-  const shopItemsSnap = await getDocs(shopItemsQuery);
-  shopItemsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-
-  // Delete purchases
-  const purchasesQuery = query(
-    collection(db, "purchases"),
-    where("__name__", ">=", `${userId}_`),
-    where("__name__", "<", `${userId}_\uf8ff`),
-  );
-  const purchasesSnap = await getDocs(purchasesQuery);
-  purchasesSnap.docs.forEach((doc) => batch.delete(doc.ref));
-
-  // Commit batch
+  shopItemsSnap.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
 
-  // Delete Firebase Auth user
-  if (auth.currentUser && auth.currentUser.uid === userId) {
-    await deleteUser(auth.currentUser);
+  const currentUser = auth.currentUser;
+  if (currentUser && currentUser.uid === userId) {
+    await deleteUser(currentUser);
   }
 
-  // Clear local cache
+  Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
   localStorage.removeItem(STORAGE_KEY);
+  await signOut(auth);
+}
+
+/** Reautentica o usuário atual com e-mail e senha. */
+export async function reauthenticateUser(email: string, password: string): Promise<void> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Usuário não autenticado.");
+  const credential = EmailAuthProvider.credential(email, password);
+  try {
+    await reauthenticateWithCredential(currentUser, credential);
+  } catch (error) {
+    translateError(error);
+  }
+}
+
+/** Reautentica o usuário atual via popup do Google. */
+export async function reauthenticateGoogle(): Promise<void> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Usuário não autenticado.");
+  try {
+    await reauthenticateWithPopup(currentUser, new GoogleAuthProvider());
+  } catch (error) {
+    translateError(error);
+  }
+}
+
+/** Retorna true se o usuário atual fez login via Google. */
+export function isGoogleUser(): boolean {
+  return auth.currentUser?.providerData.some((p) => p.providerId === "google.com") ?? false;
 }
 
 /**

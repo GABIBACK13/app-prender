@@ -15,12 +15,14 @@ import {
   Paper,
   Grid,
   IconButton,
+  InputAdornment,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { logout, deleteAccount, validateParentPassword } from "../../models/auth";
+import { logout, deleteAccount, validateParentPassword, reauthenticateUser, reauthenticateGoogle, isGoogleUser } from "../../models/auth";
+import { syncFirestore } from "../../lib/syncManager";
 import { todayISO } from "../../models/streak";
 import WhatshotRoundedIcon from "@mui/icons-material/WhatshotRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
@@ -32,6 +34,9 @@ import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
 import ShieldIcon from "@mui/icons-material/Shield";
 import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import CloudSyncRoundedIcon from "@mui/icons-material/CloudSyncRounded";
+import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
+import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
 const AVERAGE_RATING = 400; // Rating médio para comparação
 
@@ -43,9 +48,15 @@ export default function ProfilePage() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [reauthDialogOpen, setReauthDialogOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [reauthEmail, setReauthEmail] = useState("");
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [reauthError, setReauthError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<"success" | "error" | null>(null);
 
   // Verifica se meta diária foi concluída (dados do localStorage via AuthContext)
   const [isDailyGoalCompleted, setIsDailyGoalCompleted] = useState(false);
@@ -71,29 +82,58 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleDeleteAccount() {
-    if (!user.parentPassword) {
-      setError("Nenhuma senha configurada. Configure uma senha na loja primeiro.");
-      return;
-    }
-
-    if (!validateParentPassword(user.parentPassword, password)) {
+  function handleDeleteConfirm() {
+    if (!user) return;
+    if (!validateParentPassword(user.parentPassword ?? "", password)) {
       setError("Senha incorreta.");
       return;
     }
+    setDeleteDialogOpen(false);
+    setPassword("");
+    setError("");
+    setReauthEmail(user.email ?? "");
+    setReauthPassword("");
+    setReauthError("");
+    setReauthDialogOpen(true);
+  }
 
+  async function handleGoogleReauth() {
     setLoading(true);
+    setReauthError("");
+    try {
+      await reauthenticateGoogle();
+      await doDeleteAccount();
+    } catch (err) {
+      setReauthError(err instanceof Error ? err.message : "Erro ao autenticar. Tente novamente.");
+      setLoading(false);
+    }
+  }
+
+  async function handleEmailReauth() {
+    setLoading(true);
+    setReauthError("");
+    try {
+      await reauthenticateUser(reauthEmail, reauthPassword);
+      await doDeleteAccount();
+    } catch (err) {
+      setReauthError(err instanceof Error ? err.message : "Erro ao autenticar. Tente novamente.");
+      setLoading(false);
+    }
+  }
+
+  async function doDeleteAccount() {
+    if (!user) return;
     try {
       await deleteAccount(user.id);
-      await logout();
       navigate("/", { replace: true });
     } catch (err) {
-      setError("Erro ao excluir conta. Tente novamente.");
+      setReauthError(err instanceof Error ? err.message : "Erro ao excluir conta. Tente novamente.");
       setLoading(false);
     }
   }
 
   function openDeleteDialog() {
+    if (!user) return;
     if (!user.parentPassword) {
       setError("Configure uma senha na loja antes de excluir a conta.");
       return;
@@ -101,6 +141,21 @@ export default function ProfilePage() {
     setDeleteDialogOpen(true);
     setPassword("");
     setError("");
+  }
+
+  async function handleSync() {
+    if (!user) return;
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      await syncFirestore(user.id);
+      setSyncResult("success");
+    } catch {
+      setSyncResult("error");
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncResult(null), 4000);
+    }
   }
 
   function openLogoutDialog() {
@@ -138,6 +193,33 @@ export default function ProfilePage() {
             >
               Meu Perfil
             </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={
+                <CloudSyncRoundedIcon
+                  sx={{
+                    animation: syncing ? "spin 1s linear infinite" : "none",
+                    "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } },
+                  }}
+                />
+              }
+              onClick={handleSync}
+              disabled={syncing}
+              color={syncResult === "error" ? "error" : syncResult === "success" ? "success" : "primary"}
+              sx={{
+                ml: "auto",
+                fontFamily: '"Fredoka", sans-serif',
+                fontWeight: 600,
+                fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                borderRadius: 3,
+                py: 0.75,
+                px: { xs: 1.5, sm: 2 },
+                whiteSpace: "nowrap",
+              }}
+            >
+              {syncing ? "Salvando..." : syncResult === "success" ? "Salvo!" : syncResult === "error" ? "Erro" : "Sincronizar"}
+            </Button>
           </Box>
 
           {/* Card de informações principais */}
@@ -471,10 +553,12 @@ export default function ProfilePage() {
       <Dialog
         open={logoutDialogOpen}
         onClose={() => setLogoutDialogOpen(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 4,
-            p: 1,
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 4,
+              p: 1,
+            },
           },
         }}
       >
@@ -516,14 +600,130 @@ export default function ProfilePage() {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog de reautenticação para exclusão de conta */}
+      <Dialog
+        open={reauthDialogOpen}
+        onClose={() => !loading && setReauthDialogOpen(false)}
+        slotProps={{ paper: { sx: { borderRadius: 4, p: 1 } } }}
+      >
+        <DialogTitle
+          sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700, fontSize: "1.5rem", color: "error.main" }}
+        >
+          🔒 Confirme sua identidade
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Typography sx={{ fontFamily: '"Nunito", sans-serif' }}>
+              Por segurança, confirme quem você é antes de excluir a conta permanentemente.
+            </Typography>
+
+            {isGoogleUser() ? (
+              <Button
+                variant="outlined"
+                color="inherit"
+                size="large"
+                fullWidth
+                loading={loading}
+                onClick={handleGoogleReauth}
+                sx={{
+                  py: 1.5,
+                  borderColor: "divider",
+                  color: "text.primary",
+                  gap: 1.5,
+                  "&:hover": { borderColor: "text.secondary", bgcolor: "action.hover" },
+                }}
+                startIcon={
+                  <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    <path fill="none" d="M0 0h48v48H0z"/>
+                  </svg>
+                }
+              >
+                Confirmar com Google
+              </Button>
+            ) : (
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  label="E-mail"
+                  type="email"
+                  value={reauthEmail}
+                  onChange={(e) => setReauthEmail(e.target.value)}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <EmailRoundedIcon color="primary" />
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Senha"
+                  type="password"
+                  value={reauthPassword}
+                  onChange={(e) => setReauthPassword(e.target.value)}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !loading && reauthPassword) handleEmailReauth();
+                  }}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockRoundedIcon color="primary" />
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+              </Stack>
+            )}
+
+            {reauthError && (
+              <Alert severity="error" sx={{ borderRadius: 3 }}>
+                {reauthError}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setReauthDialogOpen(false)}
+            disabled={loading}
+            sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 600 }}
+          >
+            Cancelar
+          </Button>
+          {!isGoogleUser() && (
+            <Button
+              onClick={handleEmailReauth}
+              variant="contained"
+              color="error"
+              disabled={loading || !reauthPassword}
+              sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 600 }}
+            >
+              {loading ? "Excluindo..." : "Confirmar e Excluir"}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
       {/* Dialog de confirmação de exclusão */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 4,
-            p: 1,
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 4,
+              p: 1,
+            },
           },
         }}
       >
@@ -582,16 +782,16 @@ export default function ProfilePage() {
             Cancelar
           </Button>
           <Button
-            onClick={handleDeleteAccount}
+            onClick={handleDeleteConfirm}
             variant="contained"
             color="error"
-            disabled={loading || !password}
+            disabled={!password}
             sx={{
               fontFamily: '"Fredoka", sans-serif',
               fontWeight: 600,
             }}
           >
-            {loading ? "Excluindo..." : "Excluir Definitivamente"}
+            Continuar
           </Button>
         </DialogActions>
       </Dialog>

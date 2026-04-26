@@ -27,17 +27,27 @@ service cloud.firestore {
     }
     
     // Regra para coleção purchases
-    // Formato do ID: {userId}_{timestamp}
     match /purchases/{purchaseId} {
-      // Permite leitura das próprias compras
-      allow read: if request.auth != null && 
-        request.auth.uid == purchaseId.split('_')[0];
-      
-      // Permite criar compra própria
-      allow create: if request.auth != null && 
-        request.auth.uid == purchaseId.split('_')[0];
-      
-      // Não permite editar ou deletar compras
+      // Leitura via campo userId (compatível com queries where("userId", "==", uid))
+      allow read: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+
+      // Criação: userId no documento deve bater com o usuário autenticado
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+
+      // Histórico é imutável — sem update ou delete pelo cliente
+      allow update, delete: if false;
+    }
+
+    // Regra para coleção answers (histórico de respostas do play)
+    match /answers/{answerId} {
+      allow read: if request.auth != null &&
+        request.auth.uid == resource.data.user_id;
+
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.user_id;
+
       allow update, delete: if false;
     }
   }

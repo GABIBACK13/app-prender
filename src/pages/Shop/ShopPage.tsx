@@ -26,7 +26,7 @@ import { getUserShopItems, purchaseItem } from "../../models/shop";
 import type { ShopItem } from "../../models/shop";
 
 export function ShopPage() {
-  const { user, patchUser, refreshUser } = useAuth();
+  const { user, patchUser } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,11 +130,11 @@ export function ShopPage() {
       >
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
           <StarsIcon sx={{ fontSize: "2.5rem", mr: 1 }} />
-          <Typography variant="h3" fontFamily='"Fredoka", sans-serif' fontWeight={700}>
+          <Typography variant="h3" sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700 }}>
             {user.points}
           </Typography>
         </Box>
-        <Typography variant="h6" fontFamily='"Fredoka", sans-serif'>
+        <Typography variant="h6" sx={{ fontFamily: '"Fredoka", sans-serif' }}>
           Seus Pontos
         </Typography>
         <Button
@@ -160,7 +160,7 @@ export function ShopPage() {
       </Paper>
 
       {/* Título da loja */}
-      <Typography variant="h4" fontFamily='"Fredoka", sans-serif' fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700, mb: 3 }}>
         🎁 Loja de Recompensas
       </Typography>
 

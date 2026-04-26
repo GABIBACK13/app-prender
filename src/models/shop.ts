@@ -18,8 +18,8 @@ import { shouldSync, updateLastSync } from "../lib/syncManager";
 import { LocalShopItem } from "../types/localStorage";
 import { addPurchaseToHistory } from "./purchaseHistory";
 
-// Re-export types from types/shop.ts
-export type { IconType, ShopItem, Purchase } from "../types/shop";
+import type { IconType, ShopItem, Purchase } from "../types/shop";
+export type { IconType, ShopItem, Purchase };
 
 /**
  * Deserializa um item do localStorage, convertendo datas de string para Date
@@ -28,16 +28,6 @@ function deserializeShopItem(item: any): ShopItem {
   return {
     ...item,
     createdAt: typeof item.createdAt === "string" ? new Date(item.createdAt) : item.createdAt,
-  };
-}
-
-/**
- * Deserializa uma compra do localStorage, convertendo datas de string para Date
- */
-function deserializePurchase(purchase: any): Purchase {
-  return {
-    ...purchase,
-    purchasedAt: typeof purchase.purchasedAt === "string" ? new Date(purchase.purchasedAt) : purchase.purchasedAt,
   };
 }
 

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
-import { handleGoogleRedirectResult, type User } from "../models/auth";
+import { type User } from "../models/auth";
 import { shouldSync, updateLastSync } from "../lib/syncManager";
 import { loadFromLocalStorage, saveToLocalStorage, STORAGE_KEYS } from "../lib/localStorage";
 

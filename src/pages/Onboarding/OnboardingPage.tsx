@@ -20,7 +20,7 @@ import {
   updateUserAfterAnswer,
 } from '../../models/questions'
 import { onboardUser } from '../../models/auth'
-import type { QuestionResult, QuestionType } from '../../models/questions'
+import type { QuestionResult } from '../../models/questions'
 import type { User } from '../../models/auth'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -425,8 +425,7 @@ export default function OnboardingPage() {
               ) : (
                 <Typography
                   variant="h3"
-                  fontFamily='"Fredoka", sans-serif'
-                  fontWeight={700}
+                  sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700 }}
                   color="primary.dark"
                 >
                   {question.a} {OP_LABEL[question.type]} {question.b} = ?
@@ -489,9 +488,7 @@ export default function OnboardingPage() {
                 >
                   {wasCorrect ? <CheckCircleRoundedIcon /> : <CancelRoundedIcon />}
                   <Typography
-                    fontFamily='"Fredoka", sans-serif'
-                    fontWeight={700}
-                    fontSize="1.2rem"
+                    sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700, fontSize: "1.2rem" }}
                   >
                     {feedbackMsg}
                   </Typography>

@@ -50,7 +50,7 @@ export function IconPicker({ selectedIcon, onSelect }: IconPickerProps) {
   const renderIcon = (icon: IconData) => {
     if (icon.type === 'emoji') {
       return (
-        <Typography fontSize="2rem" component="span">
+        <Typography component="span" sx={{ fontSize: "2rem" }}>
           {icon.value}
         </Typography>
       )
@@ -73,12 +73,14 @@ export function IconPicker({ selectedIcon, onSelect }: IconPickerProps) {
         size="small"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          },
         }}
         sx={{ mb: 2 }}
       />
@@ -156,7 +158,7 @@ export function IconPicker({ selectedIcon, onSelect }: IconPickerProps) {
       </Box>
 
       {filteredIcons.length === 0 && (
-        <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
           Nenhum ícone encontrado.
         </Typography>
       )}

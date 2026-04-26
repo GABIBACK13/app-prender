@@ -3,10 +3,10 @@
  * Handles synchronization between localStorage and Firebase
  */
 
-import { doc, setDoc, writeBatch, Timestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, writeBatch, Timestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import { User } from "../models/auth";
-import { LocalShopItem, LocalPurchase } from "../types/localStorage";
+import { LocalShopItem, LocalPurchase, PurchaseHistoryData, AnswerRecord } from "../types/localStorage";
 import { saveToLocalStorage, loadFromLocalStorage, STORAGE_KEYS } from "./localStorage";
 
 // Sync threshold: 20 minutes in milliseconds
@@ -36,6 +36,129 @@ export function getLastSync(): number | null {
  */
 export function updateLastSync(): void {
   saveToLocalStorage(STORAGE_KEYS.LAST_SYNC, Date.now());
+}
+
+/**
+ * Sincronização principal: user + histórico de compras → Firestore.
+ * Deve ser chamada em todo ponto que antes atualizava apprender:last_sync.
+ */
+export async function syncFirestore(userId: string): Promise<void> {
+  // 1. Sincroniza campos do usuário
+  const userData = loadFromLocalStorage<User>(STORAGE_KEYS.USER_DATA);
+  if (userData && userData.id === userId) {
+    let offensiveGuards = userData.offensive_guards ?? 0;
+    let offensive = userData.offensive ?? 0;
+    const lastDay = userData.last_day ?? null;
+
+    // Valida ofensiva: se last_day < hoje, desconta dias perdidos dos guards
+    if (lastDay) {
+      const last = new Date(lastDay + "T00:00:00");
+      const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+      const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays > 1) {
+        const missedDays = diffDays - 1; // dias entre last_day+1 e ontem
+        offensiveGuards -= missedDays;
+
+        if (offensiveGuards < 0) {
+          offensive = 0;
+          offensiveGuards = 2;
+        }
+
+        // Persiste os valores corrigidos no localStorage antes de enviar ao Firestore
+        saveToLocalStorage(STORAGE_KEYS.USER_DATA, {
+          ...userData,
+          offensive,
+          offensive_guards: offensiveGuards,
+        });
+        console.log(`[SyncFirestore] Ofensiva ajustada: ${missedDays} dias perdidos. Guards: ${offensiveGuards}, Offensive: ${offensive}`);
+      }
+    }
+
+    const userUpdate: Record<string, unknown> = {
+      level: userData.level,
+      nickname: userData.nickname,
+      offensive_guards: offensiveGuards,
+      offensive: offensive,
+      last_day: lastDay,
+      points: userData.points,
+      rating: userData.rating,
+    };
+    if (userData.parentPassword !== undefined) {
+      userUpdate.parentPassword = userData.parentPassword;
+    }
+    await setDoc(doc(db, "users", userId), userUpdate, { merge: true });
+    console.log("[SyncFirestore] Dados do usuário sincronizados");
+  }
+
+  // 2. Sincroniza compras: cria registros no Firestore e decrementa quantities
+  const historyData = loadFromLocalStorage<PurchaseHistoryData>(STORAGE_KEYS.PURCHASE_HISTORY);
+  if (historyData?.purchases?.length) {
+    const lastSyncTime = getLastSync() ?? 0;
+
+    // Cria no Firestore: compras não sincronizadas OU mais recentes que o último sync
+    const toCreate = historyData.purchases.filter(
+      (p) => !p.synced || new Date(p.purchasedAt).getTime() > lastSyncTime,
+    );
+
+    for (const p of toCreate) {
+      const { synced, ...purchaseData } = p;
+      await setDoc(
+        doc(db, "purchases", p.id),
+        { ...purchaseData, purchasedAt: Timestamp.fromDate(new Date(p.purchasedAt)) },
+        { merge: true },
+      );
+    }
+
+    // Decrementa quantity nos shopItems apenas para compras ainda não sincronizadas
+    const unsynced = historyData.purchases.filter((p) => !p.synced);
+    if (unsynced.length > 0) {
+      const countByItem: Record<string, number> = {};
+      for (const p of unsynced) {
+        countByItem[p.itemId] = (countByItem[p.itemId] ?? 0) + 1;
+      }
+      for (const [itemId, count] of Object.entries(countByItem)) {
+        const itemRef = doc(db, "shopItems", itemId);
+        const snap = await getDoc(itemRef);
+        if (snap.exists()) {
+          const currentQty: number = (snap.data().quantity as number) ?? 0;
+          await setDoc(itemRef, { quantity: Math.max(0, currentQty - count) }, { merge: true });
+        }
+      }
+    }
+
+    if (toCreate.length > 0 || unsynced.length > 0) {
+      const updatedPurchases = historyData.purchases.map((p) => ({ ...p, synced: true }));
+      saveToLocalStorage(STORAGE_KEYS.PURCHASE_HISTORY, { ...historyData, purchases: updatedPurchases });
+      console.log(`[SyncFirestore] ${toCreate.length} compras criadas no Firestore, ${unsynced.length} quantities decrementadas`);
+    }
+  }
+
+  // 3. Sincroniza respostas do histórico de play
+  const answerHistory = loadFromLocalStorage<AnswerRecord[]>(STORAGE_KEYS.ANSWER_HISTORY);
+  if (answerHistory?.length) {
+    const answerLastSync = getLastSync() ?? 0;
+    const answersToCreate = answerHistory.filter(
+      (a) => !a.synced || new Date(a.data_registro).getTime() > answerLastSync,
+    );
+    if (answersToCreate.length > 0) {
+      for (const answer of answersToCreate) {
+        const { synced, ...answerData } = answer;
+        await setDoc(
+          doc(db, "answers", answer.id),
+          { ...answerData, data_registro: Timestamp.fromDate(new Date(answer.data_registro)) },
+          { merge: true },
+        );
+      }
+      const updatedAnswers = answerHistory.map((a) => ({ ...a, synced: true }));
+      saveToLocalStorage(STORAGE_KEYS.ANSWER_HISTORY, updatedAnswers);
+      console.log(`[SyncFirestore] ${answersToCreate.length} respostas sincronizadas`);
+    }
+  }
+
+  // 4. Atualiza timestamp de última sincronização
+  updateLastSync();
+  console.log("[SyncFirestore] Sincronização concluída");
 }
 
 /**

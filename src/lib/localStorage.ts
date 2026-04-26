@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   PURCHASE_HISTORY: "apprender:purchase_history",
   LAST_SYNC: "apprender:last_sync",
   PARENT_PASSWORD: "apprender:parent_password",
+  DAILY_PROGRESS: "apprender:daily_progress",
+  ANSWER_HISTORY: "apprender:answer_history",
 } as const;
 
 /**

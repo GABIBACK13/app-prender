@@ -32,3 +32,32 @@ export interface PurchaseHistoryData {
   purchases: LocalPurchase[];
   lastSync: number; // timestamp
 }
+
+/**
+ * Progresso diário do jogador — persiste entre recargas
+ */
+export interface DailyProgress {
+  date: string;          // "YYYY-MM-DD" — invalida dados de outros dias
+  questionsCount: number;
+  correctCount: number;
+  completed: boolean;
+}
+
+/**
+ * Registro de cada resposta dada no modo Play
+ */
+export interface AnswerRecord {
+  id: string;
+  user_id: string;
+  question: string;       // e.g. "5 + 5" ou "Número: 7"
+  answer: number;         // alternativa escolhida pelo usuário
+  alternatives: number[];
+  is_correct: boolean;
+  reward_xp: number;      // pontos ganhos/perdidos
+  question_rating: number;
+  user_rating: number;    // rating do usuário APÓS a resposta
+  bonus: number;          // % da barra de timer (0-100)
+  current_stack: number;  // streak em acertos seguidos no momento
+  data_registro: string;  // ISO datetime
+  synced: boolean;
+}

@@ -19,13 +19,14 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import WhatshotRoundedIcon from "@mui/icons-material/WhatshotRounded";
 import ShieldIcon from "@mui/icons-material/Shield";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { generateQuestion, generateRoundQueue, updateUserAfterAnswer } from "../../models/questions";
-import { syncUserToFirebase } from "../../lib/syncManager";
+import { syncFirestore } from "../../lib/syncManager";
 import { updateStreak, saveStreak, applyMilestoneReward, todayISO } from "../../models/streak";
+import { saveToLocalStorage, loadFromLocalStorage, STORAGE_KEYS } from "../../lib/localStorage";
 import type { QuestionResult, QuestionType } from "../../models/questions";
 import type { User } from "../../models/auth";
+import type { DailyProgress, AnswerRecord } from "../../types/localStorage";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -264,7 +265,6 @@ function DebugCard({
 
 export default function PlayPage() {
   const { user, patchUser } = useAuth();
-  const navigate = useNavigate();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
 
@@ -300,10 +300,20 @@ export default function PlayPage() {
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
   const [showStreakEffect, setShowStreakEffect] = useState(false);
 
-  // Daily streak system
-  const [dailyStreakChecked, setDailyStreakChecked] = useState(false);
-  const [dailyQuestionsCount, setDailyQuestionsCount] = useState(0);
-  const [dailyCorrectCount, setDailyCorrectCount] = useState(0);
+  // Daily streak system — inicializa do localStorage para sobreviver a recargas
+  const [dailyStreakChecked, setDailyStreakChecked] = useState(() => {
+    if (user?.last_day === todayISO()) return true;
+    const saved = loadFromLocalStorage<DailyProgress>(STORAGE_KEYS.DAILY_PROGRESS);
+    return !!(saved?.date === todayISO() && saved.completed);
+  });
+  const [dailyQuestionsCount, setDailyQuestionsCount] = useState(() => {
+    const saved = loadFromLocalStorage<DailyProgress>(STORAGE_KEYS.DAILY_PROGRESS);
+    return saved?.date === todayISO() ? saved.questionsCount : 0;
+  });
+  const [dailyCorrectCount, setDailyCorrectCount] = useState(() => {
+    const saved = loadFromLocalStorage<DailyProgress>(STORAGE_KEYS.DAILY_PROGRESS);
+    return saved?.date === todayISO() ? saved.correctCount : 0;
+  });
   const [milestoneSnackbar, setMilestoneSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -378,7 +388,7 @@ export default function PlayPage() {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
 
     const isCorrect = option === question.answer;
-    const timerMultiplier = timerPercent / 100; // 0.0 a 1.0
+    const timerMultiplier = Math.max(0.05, timerPercent / 100); // mínimo 5%
 
     // Toca som de acerto/erro
     playAnswerSound(isCorrect);
@@ -390,7 +400,7 @@ export default function PlayPage() {
     let finalPoints = baseStats.points;
 
     // Se acertou: aplica multiplicador do timer aos ganhos
-    if (isCorrect && timerMultiplier > 0) {
+    if (isCorrect) {
       const baseGain = baseStats.rating - localUser.rating;
       const baseLevelGain = baseStats.level - localUser.level;
       const basePointsGain = baseStats.points - localUser.points;
@@ -448,6 +458,37 @@ export default function PlayPage() {
     const dRating = updated.rating - localUser.rating;
     const dLevel = +(updated.level - localUser.level).toFixed(2);
     const dPoints = updated.points - localUser.points;
+
+    // Persiste progresso diário no localStorage
+    saveToLocalStorage(STORAGE_KEYS.DAILY_PROGRESS, {
+      date: todayISO(),
+      questionsCount: newDailyQuestions,
+      correctCount: newDailyCorrect,
+      completed: dailyStreakChecked || shouldCheckStreak,
+    } satisfies DailyProgress);
+
+    // Registra a resposta no histórico local (sincronizado com Firestore no próximo sync)
+    const questionText =
+      question.type === "ask_number"
+        ? `Número: ${question.answer}`
+        : `${question.a} ${OP_LABEL[question.type] ?? question.type} ${question.b}`;
+    const answerRecord: AnswerRecord = {
+      id: crypto.randomUUID(),
+      user_id: localUser.id,
+      question: questionText,
+      answer: option,
+      alternatives: [...question.options],
+      is_correct: isCorrect,
+      reward_xp: dPoints,
+      question_rating: question.questionRating,
+      user_rating: updated.rating,
+      bonus: Math.round(timerPercent),
+      current_stack: newStreak,
+      data_registro: new Date().toISOString(),
+      synced: false,
+    };
+    const existingAnswers = loadFromLocalStorage<AnswerRecord[]>(STORAGE_KEYS.ANSWER_HISTORY) ?? [];
+    saveToLocalStorage(STORAGE_KEYS.ANSWER_HISTORY, [...existingAnswers, answerRecord]);
 
     setSelected(option);
     setWasCorrect(isCorrect);
@@ -530,14 +571,7 @@ export default function PlayPage() {
         setQuestion(generateQuestion(updated, newQueue[0] ?? "+"));
 
         // Sincronizar progresso com Firebase ao completar rodada
-        syncUserToFirebase(updated.id, {
-          rating: updated.rating,
-          level: updated.level,
-          points: updated.points,
-          offensive: updated.offensive,
-          last_day: updated.last_day,
-          offensive_guards: updated.offensive_guards,
-        })
+        syncFirestore(updated.id)
           .then(() => {
             console.log("[PlayPage] Progresso sincronizado com Firebase");
             setSyncSnackbar({
@@ -580,13 +614,7 @@ export default function PlayPage() {
   const timerColor = timerPercent > 60 ? "#4CAF50" : timerPercent > 30 ? "#FFC107" : "#F44336";
 
   return (
-    <Box
-      sx={{
-        position: "relative",
-        minHeight: "100vh",
-        pb: { xs: 10, md: 2 },
-      }}
-    >
+    <Box sx={{ position: "relative" }}>
       {/* ── Barra de timer (topo fixo) ────────────────────────────────────── */}
       <Box
         sx={{
@@ -611,14 +639,14 @@ export default function PlayPage() {
         />
       </Box>
 
-      {/* ── Ofensiva diária (header fixo) ──────────────────────────────── */}
+      {/* ── Ofensiva diária (header fixo — desktop only) ──────────────── */}
       <Box
         sx={{
           position: "fixed",
           top: 16,
           right: 16,
           zIndex: 1000,
-          display: "flex",
+          display: { xs: "none", md: "flex" },
           flexDirection: "column",
           gap: 1,
           alignItems: "flex-end",
@@ -718,59 +746,6 @@ export default function PlayPage() {
         </Box>
       </Box>
 
-      {/* ── Indicador de streak (flutuante) ─────────────────────────────── */}
-      {streak >= 3 && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: 16,
-            left: 16,
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            bgcolor: "warning.main",
-            color: "white",
-            px: 1.5,
-            py: 0.75,
-            borderRadius: 3,
-            boxShadow: 3,
-            fontFamily: '"Fredoka", sans-serif',
-            fontWeight: 700,
-          }}
-        >
-          <WhatshotRoundedIcon fontSize="small" />
-          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-            {streak} seguidos
-          </Typography>
-        </Box>
-      )}
-
-      {/* ── Aviso de erros consecutivos ────────────────────────────────── */}
-      {consecutiveErrors >= 3 && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: 16,
-            right: isDesktop ? "auto" : 16,
-            left: isDesktop ? "50%" : "auto",
-            transform: isDesktop ? "translateX(-50%)" : undefined,
-            zIndex: 1000,
-            bgcolor: "error.main",
-            color: "white",
-            px: 1.5,
-            py: 0.75,
-            borderRadius: 3,
-            boxShadow: 3,
-            fontFamily: '"Fredoka", sans-serif',
-            fontWeight: 700,
-            fontSize: "0.85rem",
-          }}
-        >
-          ⚠️ {consecutiveErrors} erros! Cuidado!
-        </Box>
-      )}
-
       {/* ── Debug card (desktop apenas) ────────────────────────────────── */}
       {isDesktop && (
         <Box
@@ -805,8 +780,73 @@ export default function PlayPage() {
           gap: 2.5,
           maxWidth: 560,
           mx: "auto",
+          pb: { xs: "220px", md: 2 },
         }}
       >
+        {/* ── Ofensiva + meta diária (mobile, fluxo normal) ──────────────── */}
+        {!isDesktop && (
+          <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                bgcolor: "background.paper",
+                px: 2,
+                py: 1,
+                borderRadius: 3,
+                boxShadow: 2,
+                flexShrink: 0,
+              }}
+            >
+              <WhatshotRoundedIcon sx={{ color: "#FF6B6B", fontSize: 22 }} />
+              <Typography variant="h6" sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700, color: "text.primary" }}>
+                {localUser.offensive ?? 0}
+              </Typography>
+              {(localUser.offensive_guards ?? 0) > 0 && (
+                <Chip
+                  icon={<ShieldIcon sx={{ fontSize: 16 }} />}
+                  label={localUser.offensive_guards}
+                  size="small"
+                  color="primary"
+                  sx={{ height: 24, "& .MuiChip-label": { px: 1, fontSize: "0.75rem" } }}
+                />
+              )}
+            </Box>
+            <Box sx={{ bgcolor: "background.paper", px: 2, py: 1, borderRadius: 3, boxShadow: 2, flex: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ display: "block", fontFamily: '"Fredoka", sans-serif', fontWeight: 600, color: "text.secondary", mb: 0.5 }}
+              >
+                Meta diária
+              </Typography>
+              {dailyStreakChecked ? (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <CheckCircleRoundedIcon sx={{ color: "success.main", fontSize: 18 }} />
+                  <Typography variant="caption" sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 600, color: "success.main" }}>
+                    Concluída!
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  <Chip
+                    label={`${dailyQuestionsCount}/15`}
+                    size="small"
+                    color={dailyQuestionsCount >= 15 ? "success" : "default"}
+                    sx={{ fontSize: "0.7rem" }}
+                  />
+                  <Chip
+                    label={`${dailyCorrectCount}/7 ✓`}
+                    size="small"
+                    color={dailyCorrectCount >= 7 ? "success" : "default"}
+                    sx={{ fontSize: "0.7rem" }}
+                  />
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
+
         {/* ── Indicador de dificuldade ────────────────────────────────────── */}
         <Box sx={{ display: "flex", justifyContent: "center", mb: -1 }}>
           <Chip
@@ -859,7 +899,62 @@ export default function PlayPage() {
           )}
         </Paper>
 
+        {/* ── Streak / erros consecutivos (abaixo da questão) ─────────────── */}
+        {(streak >= 3 || consecutiveErrors >= 3) && (
+          <Box sx={{ display: "flex", gap: 1, justifyContent: "center", flexWrap: "wrap" }}>
+            {streak >= 3 && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  bgcolor: "warning.main",
+                  color: "white",
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: 3,
+                  fontFamily: '"Fredoka", sans-serif',
+                  fontWeight: 700,
+                }}
+              >
+                <WhatshotRoundedIcon fontSize="small" />
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {streak} seguidos
+                </Typography>
+              </Box>
+            )}
+            {consecutiveErrors >= 3 && (
+              <Box
+                sx={{
+                  bgcolor: "error.main",
+                  color: "white",
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: 3,
+                  fontFamily: '"Fredoka", sans-serif',
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                }}
+              >
+                ⚠️ {consecutiveErrors} erros! Cuidado!
+              </Box>
+            )}
+          </Box>
+        )}
+
         {/* ── Alternativas 2 × 2 ──────────────────────────────────────────────── */}
+        <Box
+          sx={{
+            position: { xs: "fixed", md: "relative" },
+            bottom: { xs: "56px", md: "auto" },
+            left: { xs: 0, md: "auto" },
+            right: { xs: 0, md: "auto" },
+            zIndex: { xs: 999, md: "auto" },
+            p: { xs: 2, md: 0 },
+            bgcolor: { xs: "background.default", md: "transparent" },
+            boxShadow: "none",
+          }}
+        >
         <Box
           sx={{
             display: "grid",
@@ -911,29 +1006,6 @@ export default function PlayPage() {
             );
           })}
         </Box>
-
-        {/* ── Link para recompensas ────────────────────────────────────────────── */}
-        <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <Button
-            variant="outlined"
-            onClick={() => navigate("/main/loja")}
-            sx={{
-              fontFamily: '"Fredoka", sans-serif',
-              fontWeight: 600,
-              fontSize: "0.9rem",
-              borderRadius: 3,
-              px: 3,
-              color: "text.secondary",
-              borderColor: "divider",
-              "&:hover": {
-                borderColor: "primary.main",
-                color: "primary.main",
-                bgcolor: "transparent",
-              },
-            }}
-          >
-            🎁 Ver Recompensas
-          </Button>
         </Box>
 
         {/* ── Feedback ─────────────────────────────────────────────────────────── */}
@@ -1004,7 +1076,70 @@ export default function PlayPage() {
       </Box>
 
       {/* ── Efeito de streak milestone ──────────────────────────────────── */}
-      <Zoom in={showStreakEffect}>
+      {/* Mobile: overlay fullscreen */}
+      <Fade in={showStreakEffect && !isDesktop} timeout={300} unmountOnExit>
+        <Box
+          sx={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 2000,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 2,
+            background:
+              streak >= 20
+                ? "linear-gradient(135deg, #7B1FA2 0%, #E91E63 100%)"
+                : streak >= 10
+                  ? "linear-gradient(135deg, #E64A19 0%, #E91E63 100%)"
+                  : "linear-gradient(135deg, #F9A825 0%, #EF6C00 100%)",
+            color: "white",
+            textAlign: "center",
+            px: 4,
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: '"Fredoka", sans-serif',
+              fontWeight: 700,
+              fontSize: "4rem",
+              lineHeight: 1,
+              textShadow: "0 2px 12px rgba(0,0,0,0.25)",
+            }}
+          >
+            {streak >= 20 ? "🔥🔥🔥" : streak >= 10 ? "🌟🌟" : "⭐"}
+          </Typography>
+          <Typography
+            variant="h2"
+            sx={{
+              fontFamily: '"Fredoka", sans-serif',
+              fontWeight: 700,
+              textShadow: "0 2px 12px rgba(0,0,0,0.25)",
+            }}
+          >
+            {streakMsg}
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              bgcolor: "rgba(255,255,255,0.2)",
+              px: 3,
+              py: 1.5,
+              borderRadius: 4,
+            }}
+          >
+            <WhatshotRoundedIcon sx={{ fontSize: 32 }} />
+            <Typography variant="h4" sx={{ fontWeight: 700, fontFamily: '"Fredoka", sans-serif' }}>
+              {streak} seguidos!
+            </Typography>
+          </Box>
+        </Box>
+      </Fade>
+      {/* Desktop: card centralizado */}
+      <Zoom in={showStreakEffect && isDesktop}>
         <Paper
           elevation={6}
           sx={{
@@ -1022,14 +1157,7 @@ export default function PlayPage() {
             boxShadow: "0 8px 32px rgba(255,152,0,0.4)",
           }}
         >
-          <Typography
-            variant="h3"
-            sx={{
-              fontFamily: '"Fredoka", sans-serif',
-              fontWeight: 700,
-              mb: 1,
-            }}
-          >
+          <Typography variant="h3" sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700, mb: 1 }}>
             {streakMsg}
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>

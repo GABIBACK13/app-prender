@@ -36,7 +36,7 @@ export function ShopItemCard({
   const renderIcon = () => {
     if (item.iconType === 'emoji') {
       return (
-        <Typography fontSize="4rem" component="div" textAlign="center">
+        <Typography component="div" sx={{ fontSize: "4rem", textAlign: "center" }}>
           {item.iconValue}
         </Typography>
       )
@@ -72,8 +72,7 @@ export function ShopItemCard({
           variant="h6"
           component="div"
           gutterBottom
-          fontFamily='"Fredoka", sans-serif'
-          fontWeight={700}
+          sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700 }}
         >
           {item.name}
         </Typography>

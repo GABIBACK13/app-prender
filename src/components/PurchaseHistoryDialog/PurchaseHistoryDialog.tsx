@@ -103,7 +103,7 @@ export function PurchaseHistoryDialog({ open, onClose }: PurchaseHistoryDialogPr
                     <ListItemText
                       primary={
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <Typography variant="subtitle1" fontWeight="bold">
+                          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
                             {purchase.itemName}
                           </Typography>
                           {!purchase.synced && (
@@ -123,9 +123,8 @@ export function PurchaseHistoryDialog({ open, onClose }: PurchaseHistoryDialogPr
                     <Box sx={{ textAlign: "right" }}>
                       <Typography
                         variant="subtitle1"
-                        fontWeight="bold"
                         color="error.main"
-                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                        sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 0.5 }}
                       >
                         -{purchase.pointsSpent} pts
                       </Typography>

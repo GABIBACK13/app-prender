@@ -160,7 +160,7 @@ export function ShopItemForm({ open, mode, item, onSubmit, onCancel }: ShopItemF
               onChange={(e) => handleChange('price', parseInt(e.target.value) || 0)}
               error={!!errors.price}
               helperText={errors.price}
-              inputProps={{ min: 1 }}
+              slotProps={{ htmlInput: { min: 1 } }}
             />
 
             <TextField
@@ -172,7 +172,7 @@ export function ShopItemForm({ open, mode, item, onSubmit, onCancel }: ShopItemF
               onChange={(e) => handleChange('quantity', parseInt(e.target.value) || 0)}
               error={!!errors.quantity}
               helperText={errors.quantity || 'Estoque disponível'}
-              inputProps={{ min: 0 }}
+              slotProps={{ htmlInput: { min: 0 } }}
             />
           </Box>
         </Box>

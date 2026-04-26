@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { auth } from "./lib/firebase";
-import { performFullSync } from "./lib/syncManager";
+import { syncFirestore } from "./lib/syncManager";
 import AppRoutes from "./routes";
 
 export default function App() {
@@ -10,7 +10,7 @@ export default function App() {
       const userId = auth.currentUser?.uid;
       if (userId) {
         // Tenta sincronizar (pode não completar se o navegador fechar muito rápido)
-        performFullSync(userId).catch((error) => {
+        syncFirestore(userId).catch((error) => {
           console.error("[App] Erro ao sincronizar antes de fechar:", error);
         });
       }
@@ -21,7 +21,7 @@ export default function App() {
       console.log("[App] Conexão restaurada, sincronizando...");
       const userId = auth.currentUser?.uid;
       if (userId) {
-        performFullSync(userId)
+        syncFirestore(userId)
           .then(() => {
             console.log("[App] Sincronização completa após reconexão");
           })

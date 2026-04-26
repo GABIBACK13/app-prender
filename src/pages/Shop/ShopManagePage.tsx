@@ -25,12 +25,12 @@ import { ShopItemCard } from "../../components/ShopItemCard/ShopItemCard";
 import { ShopItemForm } from "../../components/ShopItemForm/ShopItemForm";
 import { PurchaseHistoryDialog } from "../../components/PurchaseHistoryDialog/PurchaseHistoryDialog";
 import type { ShopItemFormData } from "../../types/shop";
-import { getUserShopItems, createShopItem, updateShopItem, deleteShopItem, setParentPassword } from "../../models/shop";
+import { getUserShopItems, createShopItem, updateShopItem, deleteShopItem } from "../../models/shop";
 import { updateParentPassword } from "../../models/auth";
 import type { ShopItem } from "../../models/shop";
 
 export function ShopManagePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, patchUser } = useAuth();
   const navigate = useNavigate();
   const [validatedPassword, setValidatedPassword] = useState<string | null>(null);
 
@@ -93,40 +93,21 @@ export function ShopManagePage() {
   const handlePasswordSuccess = async (password: string) => {
     if (!user) return;
 
-    if (passwordDialog.mode === "create") {
-      // Salva a nova senha no Firestore e localStorage
-      try {
-        await setParentPassword(user.id, password);
-        await refreshUser(); // Recarrega os dados do usuário
-
-        setSnackbar({
-          open: true,
-          message: "Senha criada com sucesso!",
-          severity: "success",
-        });
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: "Erro ao criar senha. Tente novamente.",
-          severity: "error",
-        });
-        return;
-      }
-    } else if (passwordDialog.mode === "reset") {
-      // Atualiza a senha no Firestore e localStorage
+    if (passwordDialog.mode === "create" || passwordDialog.mode === "reset") {
+      const isCreate = passwordDialog.mode === "create";
       try {
         await updateParentPassword(user.id, password);
-        await refreshUser(); // Recarrega os dados do usuário
-
+        // Atualiza o estado React imediatamente, sem depender do ciclo de sync
+        patchUser({ parentPassword: password });
         setSnackbar({
           open: true,
-          message: "Senha redefinida com sucesso!",
+          message: isCreate ? "Senha criada com sucesso!" : "Senha redefinida com sucesso!",
           severity: "success",
         });
       } catch (error) {
         setSnackbar({
           open: true,
-          message: "Erro ao redefinir senha. Tente novamente.",
+          message: isCreate ? "Erro ao criar senha. Tente novamente." : "Erro ao redefinir senha. Tente novamente.",
           severity: "error",
         });
         return;
