@@ -1,0 +1,74 @@
+[
+  {
+    "streak": 3,
+    "reward": {
+      "type": "points",
+      "value": 50,
+      "label": "3 dias seguidos! +50 pontos 🎁"
+    }
+  },
+  {
+    "streak": 7,
+    "reward": {
+      "type": "guard",
+      "value": 2,
+      "label": "1 semana seguida! +2 proteção de ofensiva 🛡️🛡️"
+    }
+  },
+  {
+    "streak": 14,
+    "reward": {
+      "type": "xp",
+      "value": 100,
+      "label": "2 semanas seguidas! +100 XP ⭐"
+    }
+  },
+  {
+    "streak": 30,
+    "reward": {
+      "type": "badge",
+      "value": "streak_30",
+      "label": "1 mês seguido! Conquista desbloqueada 🏆"
+    }
+  },
+  {
+    "streak": 60,
+    "reward": {
+      "type": "guard",
+      "value": 5,
+      "label": "2 meses seguidos! +5 proteções 🛡️🛡️🛡️🛡️🛡️"
+    }
+  },
+  {
+    "streak": 100,
+    "reward": {
+      "type": "points",
+      "value": 500,
+      "label": "100 dias seguidos! +500 pontos 🎉"
+    }
+  },
+  {
+    "streak": 180,
+    "reward": {
+      "type": "xp",
+      "value": 300,
+      "label": "6 meses seguidos! +300 XP ⭐⭐"
+    }
+  },
+  {
+    "streak": 365,
+    "reward": {
+      "type": "badge",
+      "value": "streak_365",
+      "label": "1 ano seguido! Conquista lendária desbloqueada 🏆🔥"
+    }
+  },
+  {
+    "streak": 365,
+    "reward": {
+      "type": "points",
+      "value": 1100,
+      "label": "1 ano seguido! +1100 pontos 🎉"
+    }
+  }
+]

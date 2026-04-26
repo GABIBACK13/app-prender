@@ -1,0 +1,508 @@
+{
+  "icons": [
+    {
+      "id": "emoji_trophy",
+      "type": "emoji",
+      "value": "🏆",
+      "name": "Troféu",
+      "category": "Prêmios"
+    },
+    {
+      "id": "emoji_star",
+      "type": "emoji",
+      "value": "⭐",
+      "name": "Estrela",
+      "category": "Prêmios"
+    },
+    {
+      "id": "emoji_medal",
+      "type": "emoji",
+      "value": "🏅",
+      "name": "Medalha",
+      "category": "Prêmios"
+    },
+    {
+      "id": "emoji_gift",
+      "type": "emoji",
+      "value": "🎁",
+      "name": "Presente",
+      "category": "Prêmios"
+    },
+    {
+      "id": "emoji_crown",
+      "type": "emoji",
+      "value": "👑",
+      "name": "Coroa",
+      "category": "Prêmios"
+    },
+    {
+      "id": "emoji_pizza",
+      "type": "emoji",
+      "value": "🍕",
+      "name": "Pizza",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_hamburger",
+      "type": "emoji",
+      "value": "🍔",
+      "name": "Hambúrguer",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_icecream",
+      "type": "emoji",
+      "value": "🍦",
+      "name": "Sorvete",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_cake",
+      "type": "emoji",
+      "value": "🍰",
+      "name": "Bolo",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_cookie",
+      "type": "emoji",
+      "value": "🍪",
+      "name": "Biscoito",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_candy",
+      "type": "emoji",
+      "value": "🍬",
+      "name": "Doce",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_chocolate",
+      "type": "emoji",
+      "value": "🍫",
+      "name": "Chocolate",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_donut",
+      "type": "emoji",
+      "value": "🍩",
+      "name": "Rosquinha",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_popcorn",
+      "type": "emoji",
+      "value": "🍿",
+      "name": "Pipoca",
+      "category": "Comida"
+    },
+    {
+      "id": "emoji_game",
+      "type": "emoji",
+      "value": "🎮",
+      "name": "Videogame",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_controller",
+      "type": "emoji",
+      "value": "🕹️",
+      "name": "Controle",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_movie",
+      "type": "emoji",
+      "value": "🎬",
+      "name": "Cinema",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_tv",
+      "type": "emoji",
+      "value": "📺",
+      "name": "TV",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_park",
+      "type": "emoji",
+      "value": "🎡",
+      "name": "Parque",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_balloon",
+      "type": "emoji",
+      "value": "🎈",
+      "name": "Balão",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_party",
+      "type": "emoji",
+      "value": "🎉",
+      "name": "Festa",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_music",
+      "type": "emoji",
+      "value": "🎵",
+      "name": "Música",
+      "category": "Diversão"
+    },
+    {
+      "id": "emoji_book",
+      "type": "emoji",
+      "value": "📚",
+      "name": "Livros",
+      "category": "Educação"
+    },
+    {
+      "id": "emoji_pencil",
+      "type": "emoji",
+      "value": "✏️",
+      "name": "Lápis",
+      "category": "Educação"
+    },
+    {
+      "id": "emoji_art",
+      "type": "emoji",
+      "value": "🎨",
+      "name": "Arte",
+      "category": "Educação"
+    },
+    {
+      "id": "emoji_rocket",
+      "type": "emoji",
+      "value": "🚀",
+      "name": "Foguete",
+      "category": "Aventura"
+    },
+    {
+      "id": "emoji_airplane",
+      "type": "emoji",
+      "value": "✈️",
+      "name": "Avião",
+      "category": "Aventura"
+    },
+    {
+      "id": "emoji_car",
+      "type": "emoji",
+      "value": "🚗",
+      "name": "Carro",
+      "category": "Aventura"
+    },
+    {
+      "id": "emoji_bike",
+      "type": "emoji",
+      "value": "🚲",
+      "name": "Bicicleta",
+      "category": "Aventura"
+    },
+    {
+      "id": "emoji_soccer",
+      "type": "emoji",
+      "value": "⚽",
+      "name": "Futebol",
+      "category": "Esportes"
+    },
+    {
+      "id": "emoji_basketball",
+      "type": "emoji",
+      "value": "🏀",
+      "name": "Basquete",
+      "category": "Esportes"
+    },
+    {
+      "id": "emoji_baseball",
+      "type": "emoji",
+      "value": "⚾",
+      "name": "Baseball",
+      "category": "Esportes"
+    },
+    {
+      "id": "emoji_swim",
+      "type": "emoji",
+      "value": "🏊",
+      "name": "Natação",
+      "category": "Esportes"
+    },
+    {
+      "id": "emoji_dog",
+      "type": "emoji",
+      "value": "🐶",
+      "name": "Cachorro",
+      "category": "Animais"
+    },
+    {
+      "id": "emoji_cat",
+      "type": "emoji",
+      "value": "🐱",
+      "name": "Gato",
+      "category": "Animais"
+    },
+    {
+      "id": "emoji_rabbit",
+      "type": "emoji",
+      "value": "🐰",
+      "name": "Coelho",
+      "category": "Animais"
+    },
+    {
+      "id": "emoji_panda",
+      "type": "emoji",
+      "value": "🐼",
+      "name": "Panda",
+      "category": "Animais"
+    },
+    {
+      "id": "emoji_unicorn",
+      "type": "emoji",
+      "value": "🦄",
+      "name": "Unicórnio",
+      "category": "Animais"
+    },
+    {
+      "id": "emoji_dinosaur",
+      "type": "emoji",
+      "value": "🦖",
+      "name": "Dinossauro",
+      "category": "Animais"
+    },
+    {
+      "id": "emoji_sun",
+      "type": "emoji",
+      "value": "☀️",
+      "name": "Sol",
+      "category": "Natureza"
+    },
+    {
+      "id": "emoji_rainbow",
+      "type": "emoji",
+      "value": "🌈",
+      "name": "Arco-íris",
+      "category": "Natureza"
+    },
+    {
+      "id": "emoji_flower",
+      "type": "emoji",
+      "value": "🌸",
+      "name": "Flor",
+      "category": "Natureza"
+    },
+    {
+      "id": "emoji_tree",
+      "type": "emoji",
+      "value": "🌳",
+      "name": "Árvore",
+      "category": "Natureza"
+    },
+    {
+      "id": "emoji_heart",
+      "type": "emoji",
+      "value": "❤️",
+      "name": "Coração",
+      "category": "Emoções"
+    },
+    {
+      "id": "emoji_sparkles",
+      "type": "emoji",
+      "value": "✨",
+      "name": "Brilhos",
+      "category": "Emoções"
+    },
+    {
+      "id": "emoji_fire",
+      "type": "emoji",
+      "value": "🔥",
+      "name": "Fogo",
+      "category": "Emoções"
+    },
+    {
+      "id": "emoji_lightning",
+      "type": "emoji",
+      "value": "⚡",
+      "name": "Raio",
+      "category": "Emoções"
+    },
+    {
+      "id": "material_cake",
+      "type": "material",
+      "value": "Cake",
+      "name": "Bolo MUI",
+      "category": "Comida"
+    },
+    {
+      "id": "material_icecream",
+      "type": "material",
+      "value": "Icecream",
+      "name": "Sorvete MUI",
+      "category": "Comida"
+    },
+    {
+      "id": "material_restaurant",
+      "type": "material",
+      "value": "Restaurant",
+      "name": "Restaurante",
+      "category": "Comida"
+    },
+    {
+      "id": "material_local_pizza",
+      "type": "material",
+      "value": "LocalPizza",
+      "name": "Pizza MUI",
+      "category": "Comida"
+    },
+    {
+      "id": "material_sports_esports",
+      "type": "material",
+      "value": "SportsEsports",
+      "name": "Videogame MUI",
+      "category": "Diversão"
+    },
+    {
+      "id": "material_movie",
+      "type": "material",
+      "value": "Movie",
+      "name": "Filme",
+      "category": "Diversão"
+    },
+    {
+      "id": "material_toys",
+      "type": "material",
+      "value": "Toys",
+      "name": "Brinquedos",
+      "category": "Diversão"
+    },
+    {
+      "id": "material_beach_access",
+      "type": "material",
+      "value": "BeachAccess",
+      "name": "Praia",
+      "category": "Diversão"
+    },
+    {
+      "id": "material_school",
+      "type": "material",
+      "value": "School",
+      "name": "Escola",
+      "category": "Educação"
+    },
+    {
+      "id": "material_book",
+      "type": "material",
+      "value": "MenuBook",
+      "name": "Livro MUI",
+      "category": "Educação"
+    },
+    {
+      "id": "material_science",
+      "type": "material",
+      "value": "Science",
+      "name": "Ciência",
+      "category": "Educação"
+    },
+    {
+      "id": "material_pets",
+      "type": "material",
+      "value": "Pets",
+      "name": "Animais MUI",
+      "category": "Animais"
+    },
+    {
+      "id": "material_park",
+      "type": "material",
+      "value": "Park",
+      "name": "Parque MUI",
+      "category": "Natureza"
+    },
+    {
+      "id": "material_sports_soccer",
+      "type": "material",
+      "value": "SportsSoccer",
+      "name": "Futebol MUI",
+      "category": "Esportes"
+    },
+    {
+      "id": "material_sports_basketball",
+      "type": "material",
+      "value": "SportsBasketball",
+      "name": "Basquete MUI",
+      "category": "Esportes"
+    },
+    {
+      "id": "material_pool",
+      "type": "material",
+      "value": "Pool",
+      "name": "Piscina",
+      "category": "Esportes"
+    },
+    {
+      "id": "material_directions_bike",
+      "type": "material",
+      "value": "DirectionsBike",
+      "name": "Bicicleta MUI",
+      "category": "Aventura"
+    },
+    {
+      "id": "material_rocket_launch",
+      "type": "material",
+      "value": "RocketLaunch",
+      "name": "Foguete MUI",
+      "category": "Aventura"
+    },
+    {
+      "id": "material_celebration",
+      "type": "material",
+      "value": "Celebration",
+      "name": "Celebração",
+      "category": "Diversão"
+    },
+    {
+      "id": "material_card_giftcard",
+      "type": "material",
+      "value": "CardGiftcard",
+      "name": "Presente MUI",
+      "category": "Prêmios"
+    },
+    {
+      "id": "material_emoji_events",
+      "type": "material",
+      "value": "EmojiEvents",
+      "name": "Troféu MUI",
+      "category": "Prêmios"
+    },
+    {
+      "id": "material_star",
+      "type": "material",
+      "value": "Star",
+      "name": "Estrela MUI",
+      "category": "Prêmios"
+    },
+    {
+      "id": "material_favorite",
+      "type": "material",
+      "value": "Favorite",
+      "name": "Coração MUI",
+      "category": "Emoções"
+    },
+    {
+      "id": "material_grade",
+      "type": "material",
+      "value": "Grade",
+      "name": "Estrela Cheia",
+      "category": "Prêmios"
+    },
+    {
+      "id": "material_military_tech",
+      "type": "material",
+      "value": "MilitaryTech",
+      "name": "Medalha MUI",
+      "category": "Prêmios"
+    }
+  ]
+}
