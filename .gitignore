@@ -11,7 +11,22 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Environment variables
 .env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+
+# Android / Bubblewrap
+android/
+build/
+.gradle/
+*.keystore
+*.jks
+local.properties
 
 # Editor directories and files
 .vscode/*
