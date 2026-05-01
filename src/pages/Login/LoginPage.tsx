@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Container,
+  Link,
   Typography,
   Stack,
   TextField,
@@ -14,7 +15,7 @@ import {
   IconButton,
   Slider,
 } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import AppLogo from '../../components/AppLogo/AppLogo'
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded'
 import EmojiEmotionsRoundedIcon from '@mui/icons-material/EmojiEmotionsRounded'
@@ -343,6 +344,13 @@ export default function LoginPage() {
                       },
                     }}
                   />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Nunito", sans-serif', textAlign: 'center', display: 'block' }}>
+                    Ao criar sua conta, você concorda com nossa{' '}
+                    <Link component={RouterLink} to="/privacidade" underline="hover">
+                      Política de Privacidade
+                    </Link>
+                    .
+                  </Typography>
                 </>
               )}
 

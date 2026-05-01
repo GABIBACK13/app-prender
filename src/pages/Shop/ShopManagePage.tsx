@@ -14,6 +14,9 @@ import {
   Alert,
   CircularProgress,
   Paper,
+  Stack,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -32,6 +35,8 @@ import type { ShopItem } from "../../models/shop";
 export function ShopManagePage() {
   const { user, patchUser } = useAuth();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [validatedPassword, setValidatedPassword] = useState<string | null>(null);
 
   const [passwordDialog, setPasswordDialog] = useState<{
@@ -217,16 +222,21 @@ export function ShopManagePage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4, pb: { xs: 12, md: 4 } }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, pb: { xs: 12, md: 4 } }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={handleBack} sx={{ mb: 2 }}>
+      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={handleBack}
+          sx={{ mb: { xs: 1, sm: 2 } }}
+          size={isMobile ? "small" : "medium"}
+        >
           Voltar para Loja
         </Button>
 
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Stack spacing={2}>
           <Typography
-            variant="h4"
+            variant={isMobile ? "h5" : "h4"}
             sx={{
               fontFamily: '"Fredoka", sans-serif',
               fontWeight: 700,
@@ -235,15 +245,27 @@ export function ShopManagePage() {
             ⚙️ Gerenciar Recompensas
           </Typography>
 
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Button variant="outlined" startIcon={<HistoryIcon />} onClick={() => setHistoryDialog(true)} size="large">
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+            <Button
+              variant="outlined"
+              startIcon={<HistoryIcon />}
+              onClick={() => setHistoryDialog(true)}
+              size={isMobile ? "medium" : "large"}
+              fullWidth={isMobile}
+            >
               Histórico
             </Button>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddItem} size="large">
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddItem}
+              size={isMobile ? "medium" : "large"}
+              fullWidth={isMobile}
+            >
               Adicionar Item
             </Button>
-          </Box>
-        </Box>
+          </Stack>
+        </Stack>
       </Box>
 
       {/* Grid de itens */}
@@ -252,19 +274,29 @@ export function ShopManagePage() {
           <CircularProgress />
         </Box>
       ) : items.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
+        <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, textAlign: "center" }}>
+          <Typography variant={isMobile ? "body1" : "h6"} color="text.secondary" gutterBottom>
             Nenhuma recompensa cadastrada ainda
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: { xs: 2, sm: 3 } }}>
             Clique em "Adicionar Item" para criar a primeira recompensa!
           </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddItem}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: { xs: 2, sm: 3 } }}>
+            Dica: pense em recompensas que motivem seu filho a estudar, como escolher o jantar, uma noite de filme ou um passeio especial, um brinquedo novo, etc. Uma dica é configurar recompensas do cotidiano como assistir TV ou jogar videogame com um custo em pontos baixo (200 pontos) e recompensas mais altas com um custo maior (1000 pontos) para coisas que exigem mais esforço ou têm um valor percebido maior. para precificar converta o tempo gasto em estudo para os pontos:
+            10~15 minutos equivalem a cerca de 300 pontos.
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddItem}
+            size={isMobile ? "medium" : "large"}
+            fullWidth={isMobile}
+          >
             Adicionar Item
           </Button>
         </Paper>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 3 }}>
           {items.map((item) => (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
               <ShopItemCard item={item} mode="manage" onEdit={handleEditItem} onDelete={openDeleteDialog} />

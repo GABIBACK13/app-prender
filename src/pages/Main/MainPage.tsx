@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -15,26 +14,15 @@ import {
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import ShoppingBagRoundedIcon from "@mui/icons-material/ShoppingBagRounded";
 import WhatshotRoundedIcon from "@mui/icons-material/WhatshotRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import { useAuth } from "../../contexts/AuthContext";
-import { shouldSync, performFullSync } from "../../lib/syncManager";
+import { LevelDisplay } from "../../components/LevelDisplay/LevelDisplay";
 
 export default function MainPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  useEffect(() => {
-    // Sincronizar dados com Firebase se necessário (lastSync > 20min)
-    if (user && shouldSync()) {
-      console.log("[MainPage] Iniciando sincronização completa...");
-      performFullSync(user.id).catch((error) => {
-        console.error("[MainPage] Erro na sincronização:", error);
-      });
-    }
-  }, [user]);
 
   const stats = [
     {
@@ -43,6 +31,7 @@ export default function MainPage() {
       icon: <StarRoundedIcon sx={{ fontSize: 40 }} />,
       color: "#FFB300",
       bgColor: "#FFF9C4",
+      type: "normal" as const,
     },
     {
       label: "Ofensiva",
@@ -50,13 +39,14 @@ export default function MainPage() {
       icon: <WhatshotRoundedIcon sx={{ fontSize: 40 }} />,
       color: "#FF6F00",
       bgColor: "#FFE0B2",
+      type: "normal" as const,
     },
     {
       label: "Nível",
-      value: Math.floor(user?.level || 1),
-      icon: <EmojiEventsRoundedIcon sx={{ fontSize: 40 }} />,
+      value: user?.level || 1,
       color: "#1976D2",
       bgColor: "#BBDEFB",
+      type: "level" as const,
     },
   ];
 
@@ -114,39 +104,63 @@ export default function MainPage() {
                   "&:last-child": { pb: { xs: 1.5, sm: 2 } },
                 }}
               >
-                <Avatar
-                  sx={{
-                    width: { xs: 50, sm: 60 },
-                    height: { xs: 50, sm: 60 },
-                    bgcolor: stat.bgColor,
-                    color: stat.color,
-                    mx: "auto",
-                    mb: 1,
-                  }}
-                >
-                  {stat.icon}
-                </Avatar>
-                <Typography
-                  variant={isMobile ? "h6" : "h5"}
-                  sx={{
-                    fontFamily: '"Fredoka", sans-serif',
-                    fontWeight: 700,
-                    color: stat.color,
-                    mb: 0.5,
-                  }}
-                >
-                  {stat.value}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontFamily: '"Nunito", sans-serif',
-                    color: "text.secondary",
-                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                  }}
-                >
-                  {stat.label}
-                </Typography>
+                {stat.type === "level" ? (
+                  <>
+                    <Box sx={{ display: "flex", justifyContent: "center", mb: 1 }}>
+                      <LevelDisplay
+                        level={stat.value as number}
+                        size={isMobile ? "small" : "medium"}
+                        color={stat.color}
+                      />
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontFamily: '"Nunito", sans-serif',
+                        color: "text.secondary",
+                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                      }}
+                    >
+                      {stat.label}
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Avatar
+                      sx={{
+                        width: { xs: 50, sm: 60 },
+                        height: { xs: 50, sm: 60 },
+                        bgcolor: stat.bgColor,
+                        color: stat.color,
+                        mx: "auto",
+                        mb: 1,
+                      }}
+                    >
+                      {stat.icon}
+                    </Avatar>
+                    <Typography
+                      variant={isMobile ? "h6" : "h5"}
+                      sx={{
+                        fontFamily: '"Fredoka", sans-serif',
+                        fontWeight: 700,
+                        color: stat.color,
+                        mb: 0.5,
+                      }}
+                    >
+                      {stat.value}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontFamily: '"Nunito", sans-serif',
+                        color: "text.secondary",
+                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                      }}
+                    >
+                      {stat.label}
+                    </Typography>
+                  </>
+                )}
               </CardContent>
             </Card>
           </Grid>

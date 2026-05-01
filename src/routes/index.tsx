@@ -11,6 +11,7 @@ import ProfilePage from '../pages/Profile/ProfilePage'
 import { ShopPage } from '../pages/Shop/ShopPage'
 import { ShopManagePage } from '../pages/Shop/ShopManagePage'
 import MainLayout from '../components/Layout/MainLayout'
+import PrivacyPolicyPage from '../pages/Privacy/PrivacyPolicyPage'
 import type { ReactNode } from 'react'
 
 function LoadingScreen() {
@@ -103,6 +104,7 @@ export default function AppRoutes() {
         <Route path="loja/gerenciar" element={<ShopManagePage />} />
         <Route path="perfil" element={<ProfilePage />} />
       </Route>
+      <Route path="/privacidade" element={<PrivacyPolicyPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

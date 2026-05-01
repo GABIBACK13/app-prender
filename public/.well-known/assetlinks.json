@@ -2,7 +2,7 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "br.com.apprender",
+    "package_name": "app.web.app_render_1.twa",
     "sha256_cert_fingerprints": [
       "7A:C7:39:76:45:89:96:9D:B7:43:41:22:31:97:34:59:EA:49:74:4A:9D:58:C4:D2:38:A9:B5:8A:BB:40:7E:6C"
     ]

@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Container,
+  Link,
   Typography,
   Stack,
   Dialog,
@@ -19,9 +20,16 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { logout, deleteAccount, validateParentPassword, reauthenticateUser, reauthenticateGoogle, isGoogleUser } from "../../models/auth";
+import {
+  logout,
+  deleteAccount,
+  validateParentPassword,
+  reauthenticateUser,
+  reauthenticateGoogle,
+  isGoogleUser,
+} from "../../models/auth";
 import { syncFirestore } from "../../lib/syncManager";
 import { todayISO } from "../../models/streak";
 import WhatshotRoundedIcon from "@mui/icons-material/WhatshotRounded";
@@ -165,7 +173,7 @@ export default function ProfilePage() {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: "78vh",
         bgcolor: "background.default",
         background: "linear-gradient(160deg, #FFF3E0 0%, #FFE0B2 100%)",
         py: { xs: 2, sm: 4 },
@@ -218,7 +226,13 @@ export default function ProfilePage() {
                 whiteSpace: "nowrap",
               }}
             >
-              {syncing ? "Salvando..." : syncResult === "success" ? "Salvo!" : syncResult === "error" ? "Erro" : "Sincronizar"}
+              {syncing
+                ? "Salvando..."
+                : syncResult === "success"
+                  ? "Salvo!"
+                  : syncResult === "error"
+                    ? "Erro"
+                    : "Sincronizar"}
             </Button>
           </Box>
 
@@ -226,21 +240,21 @@ export default function ProfilePage() {
           <Paper
             elevation={3}
             sx={{
-              p: { xs: 2, sm: 4 },
+              p: { xs: 1.5, sm: 3 },
               borderRadius: { xs: 3, sm: 5 },
               background: "linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 100%)",
             }}
           >
-            <Stack spacing={{ xs: 2, sm: 3 }}>
+            <Stack spacing={{ xs: 1.5, sm: 2.5 }}>
               {/* Nome e apelido */}
               <Box sx={{ textAlign: "center" }}>
                 <Typography
-                  variant={isMobile ? "h5" : "h4"}
+                  variant={isMobile ? "h6" : "h5"}
                   sx={{
                     fontFamily: '"Fredoka", sans-serif',
                     fontWeight: 700,
                     color: "primary.main",
-                    mb: 0.5,
+                    mb: 0.25,
                   }}
                 >
                   {user.nickname} 👋
@@ -257,7 +271,7 @@ export default function ProfilePage() {
               </Box>
 
               {/* Grid de estatísticas */}
-              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+              <Grid container spacing={{ xs: 1, sm: 2 }}>
                 {/* Pontos */}
                 <Grid size={{ xs: 6, sm: 6 }}>
                   <Box
@@ -271,10 +285,10 @@ export default function ProfilePage() {
                     }}
                   >
                     <EmojiEventsRoundedIcon
-                      sx={{ fontSize: { xs: 28, sm: 48 }, color: "#F57F17", mb: { xs: 0.5, sm: 1 } }}
+                      sx={{ fontSize: { xs: 22, sm: 40 }, color: "#F57F17", mb: { xs: 0.5, sm: 1 } }}
                     />
                     <Typography
-                      variant={isMobile ? "h5" : "h3"}
+                      variant={isMobile ? "h6" : "h4"}
                       sx={{
                         fontFamily: '"Fredoka", sans-serif',
                         fontWeight: 700,
@@ -316,14 +330,14 @@ export default function ProfilePage() {
                   >
                     <StarRoundedIcon
                       sx={{
-                        fontSize: { xs: 28, sm: 48 },
+                        fontSize: { xs: 22, sm: 40 },
                         color: isAboveAverage ? "#01579B" : "#C2185B",
-                        mb: { xs: 0.5, sm: 1 },
+                        mb: { xs: 0.25, sm: 0.75 },
                       }}
                     />
                     <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}>
                       <Typography
-                        variant={isMobile ? "h5" : "h3"}
+                        variant={isMobile ? "h6" : "h4"}
                         sx={{
                           fontFamily: '"Fredoka", sans-serif',
                           fontWeight: 700,
@@ -379,9 +393,9 @@ export default function ProfilePage() {
                       boxShadow: "0 4px 20px rgba(171, 71, 188, 0.3)",
                     }}
                   >
-                    <CakeRoundedIcon sx={{ fontSize: { xs: 28, sm: 48 }, color: "#6A1B9A", mb: { xs: 0.5, sm: 1 } }} />
+                    <CakeRoundedIcon sx={{ fontSize: { xs: 22, sm: 40 }, color: "#6A1B9A", mb: { xs: 0.5, sm: 1 } }} />
                     <Typography
-                      variant={isMobile ? "h5" : "h3"}
+                      variant={isMobile ? "h6" : "h4"}
                       sx={{
                         fontFamily: '"Fredoka", sans-serif',
                         fontWeight: 700,
@@ -427,15 +441,15 @@ export default function ProfilePage() {
                   >
                     <WhatshotRoundedIcon
                       sx={{
-                        fontSize: { xs: 28, sm: 48 },
+                        fontSize: { xs: 22, sm: 40 },
                         color: isDailyGoalCompleted ? "#FF6B6B" : "#757575",
-                        mb: { xs: 0.5, sm: 1 },
+                        mb: { xs: 0.25, sm: 0.75 },
                         filter: isDailyGoalCompleted ? "none" : "grayscale(100%)",
                       }}
                     />
                     <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}>
                       <Typography
-                        variant={isMobile ? "h5" : "h3"}
+                        variant={isMobile ? "h6" : "h4"}
                         sx={{
                           fontFamily: '"Fredoka", sans-serif',
                           fontWeight: 700,
@@ -539,6 +553,16 @@ export default function ProfilePage() {
             >
               Excluir Conta
             </Button>
+
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ textAlign: "center", fontFamily: '"Nunito", sans-serif' }}
+            >
+              <Link component={RouterLink} to="/privacidade" underline="hover">
+                Política de Privacidade
+              </Link>
+            </Typography>
           </Stack>
 
           {error && (
@@ -634,11 +658,23 @@ export default function ProfilePage() {
                 }}
                 startIcon={
                   <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                    <path fill="none" d="M0 0h48v48H0z"/>
+                    <path
+                      fill="#EA4335"
+                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                    />
+                    <path fill="none" d="M0 0h48v48H0z" />
                   </svg>
                 }
               >

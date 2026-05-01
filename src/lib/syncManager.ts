@@ -12,6 +12,9 @@ import { saveToLocalStorage, loadFromLocalStorage, STORAGE_KEYS } from "./localS
 // Sync threshold: 20 minutes in milliseconds
 const SYNC_THRESHOLD_MS = 20 * 60 * 1000; // 1200000ms
 
+// Flag para prevenir múltiplas sincronizações simultâneas
+let isSyncing = false;
+
 /**
  * Check if enough time has passed to trigger a sync
  */
@@ -71,7 +74,9 @@ export async function syncFirestore(userId: string): Promise<void> {
           offensive,
           offensive_guards: offensiveGuards,
         });
-        console.log(`[SyncFirestore] Ofensiva ajustada: ${missedDays} dias perdidos. Guards: ${offensiveGuards}, Offensive: ${offensive}`);
+        console.log(
+          `[SyncFirestore] Ofensiva ajustada: ${missedDays} dias perdidos. Guards: ${offensiveGuards}, Offensive: ${offensive}`,
+        );
       }
     }
 
@@ -97,9 +102,7 @@ export async function syncFirestore(userId: string): Promise<void> {
     const lastSyncTime = getLastSync() ?? 0;
 
     // Cria no Firestore: compras não sincronizadas OU mais recentes que o último sync
-    const toCreate = historyData.purchases.filter(
-      (p) => !p.synced || new Date(p.purchasedAt).getTime() > lastSyncTime,
-    );
+    const toCreate = historyData.purchases.filter((p) => !p.synced || new Date(p.purchasedAt).getTime() > lastSyncTime);
 
     for (const p of toCreate) {
       const { synced, ...purchaseData } = p;
@@ -130,7 +133,9 @@ export async function syncFirestore(userId: string): Promise<void> {
     if (toCreate.length > 0 || unsynced.length > 0) {
       const updatedPurchases = historyData.purchases.map((p) => ({ ...p, synced: true }));
       saveToLocalStorage(STORAGE_KEYS.PURCHASE_HISTORY, { ...historyData, purchases: updatedPurchases });
-      console.log(`[SyncFirestore] ${toCreate.length} compras criadas no Firestore, ${unsynced.length} quantities decrementadas`);
+      console.log(
+        `[SyncFirestore] ${toCreate.length} compras criadas no Firestore, ${unsynced.length} quantities decrementadas`,
+      );
     }
   }
 
@@ -264,7 +269,14 @@ export async function syncPurchasesToFirebase(userId: string, purchases: LocalPu
  * Perform a full sync of all pending data
  */
 export async function performFullSync(userId: string): Promise<void> {
+  // Prevenir múltiplas sincronizações simultâneas
+  if (isSyncing) {
+    console.log("[SyncManager] Sync already in progress, skipping...");
+    return;
+  }
+
   try {
+    isSyncing = true;
     console.log("[SyncManager] Starting full sync...");
 
     // Load data from localStorage
@@ -294,5 +306,7 @@ export async function performFullSync(userId: string): Promise<void> {
   } catch (error) {
     console.error("[SyncManager] Full sync failed:", error);
     throw error;
+  } finally {
+    isSyncing = false;
   }
 }

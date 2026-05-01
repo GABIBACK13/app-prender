@@ -3,7 +3,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { type User } from "../models/auth";
-import { shouldSync, updateLastSync } from "../lib/syncManager";
+import { shouldSync, updateLastSync, syncFirestore } from "../lib/syncManager";
 import { loadFromLocalStorage, saveToLocalStorage, STORAGE_KEYS } from "../lib/localStorage";
 
 interface AuthContextValue {
@@ -51,19 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fbUser = auth.currentUser;
     if (!fbUser) return;
 
-    // Verificar se deve sincronizar com o Firebase
     if (!shouldSync()) {
       console.log("[AuthContext] Usando dados do cache (lastSync < 20min)");
       return;
     }
 
-    console.log("[AuthContext] Sincronizando com Firebase (lastSync > 20min)");
-    const fresh = await fetchUserFromFirestore(fbUser.uid);
-    if (fresh) {
-      setUser(fresh);
-      setCachedUser(fresh);
-      updateLastSync();
-    }
+    console.log("[AuthContext] Enviando dados locais para o Firebase...");
+    await syncFirestore(fbUser.uid);
   }
 
   function patchUser(updates: Partial<User>): void {
@@ -92,16 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(cached);
         setLoading(false);
 
-        // Verificar se deve sincronizar com Firebase
+        // Envia dados locais para o Firebase se o threshold foi atingido
         if (shouldSync()) {
-          console.log("[AuthContext] Sincronizando dados do usuário com Firebase...");
+          console.log("[AuthContext] Enviando dados locais para o Firebase...");
           try {
-            const profile = await fetchUserFromFirestore(fbUser.uid);
-            if (profile) {
-              setCachedUser(profile);
-              setUser(profile);
-              updateLastSync();
-            }
+            await syncFirestore(fbUser.uid);
           } catch (error) {
             console.error("[AuthContext] Erro ao sincronizar:", error);
           }

@@ -91,7 +91,7 @@ function getDifficultyLabel(diff: number): { label: string; color: string } {
 }
 
 function getStreakMessage(streak: number): string {
-  if (streak >= 20) return "LENDÁRIO! 🔥🔥🔥";
+  if (streak >= 20) return "LENDÁRIO!";
   if (streak >= 10) return "INCRÍVEL! 🌟🌟";
   if (streak >= 5) return "EXCELENTE! ⭐";
   return "";
@@ -100,13 +100,13 @@ function getStreakMessage(streak: number): string {
 function playStreakSound(streak: number) {
   if (streak === 5) {
     try {
-      new Audio("/audio/streak-5.mp3").play().catch(() => {});
+      new Audio("/audio/streak.mp3").play().catch(() => {});
     } catch {
       /* ignore */
     }
   } else if (streak === 10) {
     try {
-      new Audio("/audio/streak-10.mp3").play().catch(() => {});
+      new Audio("/audio/streak.mp3").play().catch(() => {});
     } catch {
       /* ignore */
     }
@@ -510,6 +510,15 @@ export default function PlayPage() {
       if (shouldCheckStreak) {
         setDailyStreakChecked(true);
 
+        // 🎁 RECOMPENSA DE META DIÁRIA: +15 XP e +20 pontos
+        const dailyRewardXP = 0.15; // 15 XP
+        const dailyRewardPoints = 20;
+        updated = {
+          ...updated,
+          level: updated.level + dailyRewardXP,
+          points: updated.points + dailyRewardPoints,
+        };
+
         // Atualiza streak
         const streakData = updateStreak(updated);
 
@@ -532,6 +541,12 @@ export default function PlayPage() {
           offensive: streakData.offensive,
           last_day: streakData.last_day,
           offensive_guards: streakData.offensive_guards,
+        });
+
+        // 🎉 Notificação de meta diária concluída
+        setMilestoneSnackbar({
+          open: true,
+          message: `🎯 Meta diária concluída! +15 XP e +20 pontos 🎁`,
         });
 
         // Se atingiu milestone, aplica recompensa
@@ -747,7 +762,8 @@ export default function PlayPage() {
       </Box>
 
       {/* ── Debug card (desktop apenas) ────────────────────────────────── */}
-      {isDesktop && (
+      {/* DebugCard oculto - descomentar a linha abaixo para debug */}
+      {false && isDesktop && (
         <Box
           sx={{
             position: "fixed",
@@ -800,7 +816,10 @@ export default function PlayPage() {
               }}
             >
               <WhatshotRoundedIcon sx={{ color: "#FF6B6B", fontSize: 22 }} />
-              <Typography variant="h6" sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700, color: "text.primary" }}>
+              <Typography
+                variant="h6"
+                sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 700, color: "text.primary" }}
+              >
                 {localUser.offensive ?? 0}
               </Typography>
               {(localUser.offensive_guards ?? 0) > 0 && (
@@ -816,14 +835,23 @@ export default function PlayPage() {
             <Box sx={{ bgcolor: "background.paper", px: 2, py: 1, borderRadius: 3, boxShadow: 2, flex: 1 }}>
               <Typography
                 variant="caption"
-                sx={{ display: "block", fontFamily: '"Fredoka", sans-serif', fontWeight: 600, color: "text.secondary", mb: 0.5 }}
+                sx={{
+                  display: "block",
+                  fontFamily: '"Fredoka", sans-serif',
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
               >
                 Meta diária
               </Typography>
               {dailyStreakChecked ? (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <CheckCircleRoundedIcon sx={{ color: "success.main", fontSize: 18 }} />
-                  <Typography variant="caption" sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 600, color: "success.main" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontFamily: '"Fredoka", sans-serif', fontWeight: 600, color: "success.main" }}
+                  >
                     Concluída!
                   </Typography>
                 </Box>
@@ -955,57 +983,57 @@ export default function PlayPage() {
             boxShadow: "none",
           }}
         >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 1.5,
-          }}
-        >
-          {question.options.map((opt) => {
-            let color: "primary" | "success" | "error" | "inherit" = "primary";
-            let opacity = 1;
-            if (phase === "feedback") {
-              if (opt === question.answer) color = "success";
-              else if (opt === selected) color = "error";
-              else opacity = 0.35;
-            }
-            return (
-              <Button
-                key={opt}
-                variant={phase === "feedback" ? "contained" : "outlined"}
-                color={color}
-                disabled={phase === "feedback" && opt !== question.answer && opt !== selected}
-                onClick={() => handleAnswer(opt)}
-                sx={{
-                  fontFamily: '"Fredoka", sans-serif',
-                  fontSize: "1.5rem",
-                  fontWeight: 700,
-                  py: 2,
-                  borderRadius: 3,
-                  opacity,
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                  borderWidth: 2,
-                  borderColor: phase === "question" ? "primary.main" : undefined,
-                  bgcolor: phase === "question" ? "background.paper" : undefined,
-                  boxShadow: phase === "question" ? "0 2px 8px rgba(0,0,0,0.08)" : undefined,
-                  "&:hover": {
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 1.5,
+            }}
+          >
+            {question.options.map((opt) => {
+              let color: "primary" | "success" | "error" | "inherit" = "primary";
+              let opacity = 1;
+              if (phase === "feedback") {
+                if (opt === question.answer) color = "success";
+                else if (opt === selected) color = "error";
+                else opacity = 0.35;
+              }
+              return (
+                <Button
+                  key={opt}
+                  variant={phase === "feedback" ? "contained" : "outlined"}
+                  color={color}
+                  disabled={phase === "feedback" && opt !== question.answer && opt !== selected}
+                  onClick={() => handleAnswer(opt)}
+                  sx={{
+                    fontFamily: '"Fredoka", sans-serif',
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    py: 2,
+                    borderRadius: 3,
+                    opacity,
+                    transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                     borderWidth: 2,
-                    transform: phase === "question" ? "translateY(-2px)" : undefined,
-                    boxShadow: phase === "question" ? "0 4px 16px rgba(0,0,0,0.15)" : undefined,
-                    bgcolor: phase === "question" ? "primary.main" : undefined,
-                    color: phase === "question" ? "white" : undefined,
-                  },
-                  "&:active": {
-                    transform: "scale(0.97)",
-                  },
-                }}
-              >
-                {opt}
-              </Button>
-            );
-          })}
-        </Box>
+                    borderColor: phase === "question" ? "primary.main" : undefined,
+                    bgcolor: phase === "question" ? "background.paper" : undefined,
+                    boxShadow: phase === "question" ? "0 2px 8px rgba(0,0,0,0.08)" : undefined,
+                    "&:hover": {
+                      borderWidth: 2,
+                      transform: phase === "question" ? "translateY(-2px)" : undefined,
+                      boxShadow: phase === "question" ? "0 4px 16px rgba(0,0,0,0.15)" : undefined,
+                      bgcolor: phase === "question" ? "primary.main" : undefined,
+                      color: phase === "question" ? "white" : undefined,
+                    },
+                    "&:active": {
+                      transform: "scale(0.97)",
+                    },
+                  }}
+                >
+                  {opt}
+                </Button>
+              );
+            })}
+          </Box>
         </Box>
 
         {/* ── Feedback ─────────────────────────────────────────────────────────── */}
