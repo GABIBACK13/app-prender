@@ -139,25 +139,24 @@ export async function syncFirestore(userId: string): Promise<void> {
     }
   }
 
-  // 3. Sincroniza respostas do histórico de play
+  // 3. Sincroniza respostas do histórico de play (somente escrita, sem leitura)
   const answerHistory = loadFromLocalStorage<AnswerRecord[]>(STORAGE_KEYS.ANSWER_HISTORY);
   if (answerHistory?.length) {
-    const answerLastSync = getLastSync() ?? 0;
-    const answersToCreate = answerHistory.filter(
-      (a) => !a.synced || new Date(a.data_registro).getTime() > answerLastSync,
-    );
-    if (answersToCreate.length > 0) {
-      for (const answer of answersToCreate) {
+    const unsynced = answerHistory.filter((a) => !a.synced);
+    if (unsynced.length > 0) {
+      const batch = writeBatch(db);
+      for (const answer of unsynced) {
         const { synced, ...answerData } = answer;
-        await setDoc(
-          doc(db, "answers", answer.id),
-          { ...answerData, data_registro: Timestamp.fromDate(new Date(answer.data_registro)) },
-          { merge: true },
-        );
+        // set sem merge evita leitura implícita do Firestore (respostas são imutáveis)
+        batch.set(doc(db, "answers", answer.id), {
+          ...answerData,
+          data_registro: Timestamp.fromDate(new Date(answer.data_registro)),
+        });
       }
+      await batch.commit();
       const updatedAnswers = answerHistory.map((a) => ({ ...a, synced: true }));
       saveToLocalStorage(STORAGE_KEYS.ANSWER_HISTORY, updatedAnswers);
-      console.log(`[SyncFirestore] ${answersToCreate.length} respostas sincronizadas`);
+      console.log(`[SyncFirestore] ${unsynced.length} respostas enviadas para o Firestore`);
     }
   }
 
